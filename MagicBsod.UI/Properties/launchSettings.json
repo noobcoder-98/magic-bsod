@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MagicBsod.UI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "MagicBsod.UI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

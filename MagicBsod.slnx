@@ -1,0 +1,15 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="MagicBsod.Effects.RT/MagicBsod.Effects.RT.vcxproj" Id="6e184b3a-d2d1-4032-8b91-0face712b00f" />
+  <Project Path="MagicBsod.Effects/MagicBsod.Effects.csproj" />
+  <Project Path="MagicBsod.UI/MagicBsod.UI.csproj">
+    <Platform Solution="*|ARM64" Project="ARM64" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+    <Deploy />
+  </Project>
+</Solution>
