@@ -14,6 +14,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Media;
 using Windows.Media.Editing;
 using Windows.Media.Effects;
 using Windows.Media.MediaProperties;
@@ -43,13 +44,14 @@ namespace MagicBsod.UI
 
         private void InitProfile()
         {
-            // HD profile (1080p)
-            _profileHD = MediaEncodingProfile.CreateMp4(VideoEncodingQuality.HD1080p);
-            _profileHD.Video.Width = 1920;
-            _profileHD.Video.Height = 1080;
-            _profileHD.Video.FrameRate.Numerator = 30;
-            _profileHD.Video.FrameRate.Denominator = 1;
-            _profileHD.Video.Bitrate = 75;
+            MediaExtensionManager manager = new MediaExtensionManager();
+            //// HD profile (1080p)
+            //_profileHD = MediaEncodingProfile.CreateMp4(VideoEncodingQuality.HD1080p);
+            //_profileHD.Video.Width = 1920;
+            //_profileHD.Video.Height = 1080;
+            //_profileHD.Video.FrameRate.Numerator = 30;
+            //_profileHD.Video.FrameRate.Denominator = 1;
+            //_profileHD.Video.Bitrate = 75;
 
             // 4k profile
             _profile4K = MediaEncodingProfile.CreateHevc(VideoEncodingQuality.Uhd2160p);
@@ -57,12 +59,14 @@ namespace MagicBsod.UI
             _profile4K.Video.Height = 3840;
             _profile4K.Video.FrameRate.Numerator = 60;
             _profile4K.Video.FrameRate.Denominator = 1;
-            _profile4K.Video.Bitrate = 20_000_000; //why???
+            _profile4K.Video.Bitrate = 20_000_000; 
+            var key = new Guid("96f66574-11c5-4015-8666-bff516436da7");
+            _profile4K.Video.Properties[key] = 186;
         }
 
         private async void OnExportClick(object sender, RoutedEventArgs e)
         {
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 100; i++)
             {
                 await ExportVideo(i);
             }
@@ -74,32 +78,25 @@ namespace MagicBsod.UI
             StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(outputFolderPath);
             StorageFile outputFile = await folder.CreateFileAsync($"MagicExportVideo_{countVideo}.mp4", CreationCollisionOption.ReplaceExisting);
 
-            // Create MediaComposition
-            var composition = new MediaComposition();
-            composition = await GenerateCompositionAsync();
-
-            // ===== Transcode =====
+            var composition = await GenerateCompositionAsync();
             var transcoder = new MediaTranscoder();
+            using IRandomAccessStream outStream = await outputFile.OpenAsync(FileAccessMode.ReadWrite);
+            var prepare = await transcoder.PrepareMediaStreamSourceTranscodeAsync(
+                composition.GenerateMediaStreamSource(_profile4K),
+                outStream,
+                _profile4K);
 
-            using (IRandomAccessStream outStream = await outputFile.OpenAsync(FileAccessMode.ReadWrite))
+            try
             {
-                var prepare = await transcoder.PrepareMediaStreamSourceTranscodeAsync(
-                    composition.GenerateMediaStreamSource(_profile4K),
-                    outStream,
-                    _profile4K);
-
-                try
+                if (prepare.CanTranscode)
                 {
-                    if (prepare.CanTranscode)
-                    {
-                        await prepare.TranscodeAsync();
-                        ExportMagic.Content = $"Success export: Count {countVideo}";
-                    }
+                    await prepare.TranscodeAsync();
+                    ExportMagic.Content = $"Success export: Count {countVideo}";
                 }
-                catch (Exception ex)
-                {
-                    ExportMagic.Content = $"Exception: {ex.Message}";
-                }
+            }
+            catch (Exception ex)
+            {
+                ExportMagic.Content = $"Exception: {ex.Message}";
             }
         }
 
@@ -115,9 +112,7 @@ namespace MagicBsod.UI
             MediaComposition composition = new MediaComposition();
 
             MediaClip clip = await GetMediaClipAsync();
-
-            MediaOverlayLayer layer = new MediaOverlayLayer();
-            //MediaOverlayLayer layer = new MediaOverlayLayer(compositor);
+            MediaOverlayLayer layer = new MediaOverlayLayer(compositor);
             MediaOverlay mediaOverlay = await GetMediaOverlayAsync();
             layer.Overlays.Add(mediaOverlay);
             composition.OverlayLayers.Add(layer);

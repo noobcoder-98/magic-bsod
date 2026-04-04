@@ -1,0 +1,13 @@
+namespace MagicBsod_Codecs_RT
+{
+    [default_interface]
+	runtimeclass HevcEncoder : Windows.Media.IMediaExtension
+    {
+		HevcEncoder();
+		static void Register();
+		static void Register(Windows.Foundation.Collections.IPropertySet configuration);
+		static void ResetAttempts();
+		static UINT32 GetNumEncoders();
+		static String GetSelectedCodec();
+    }
+}

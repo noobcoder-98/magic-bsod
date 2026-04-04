@@ -4,6 +4,8 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="MagicBsod.Codecs.RT/MagicBsod.Codecs.RT.vcxproj" Id="69190885-dddf-485d-ac73-73a2a5cc912a" />
+  <Project Path="MagicBsod.Codecs/MagicBsod.Codecs.csproj" Id="b4b2ed2d-4067-4c45-9fab-ec55fc8131b0" />
   <Project Path="MagicBsod.Effects.RT/MagicBsod.Effects.RT.vcxproj" Id="6e184b3a-d2d1-4032-8b91-0face712b00f" />
   <Project Path="MagicBsod.Effects/MagicBsod.Effects.csproj" />
   <Project Path="MagicBsod.UI/MagicBsod.UI.csproj">
