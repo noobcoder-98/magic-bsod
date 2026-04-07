@@ -1,3 +1,4 @@
+using MagicBsod.Codecs.Encoder;
 using MagicBsod.Effects.VideoCompositor;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -36,15 +37,19 @@ namespace MagicBsod.UI
         private readonly Dictionary<MediaOverlay, (bool, Color, double)> _overlayBorders = new Dictionary<MediaOverlay, (bool, Color, double)>();
         private MediaEncodingProfile? _profileHD;
         private MediaEncodingProfile? _profile4K;
+        HevcEncoder _encoder;
         public MainWindow()
         {
             InitializeComponent();
+
+            // Register the encoder BEFORE initializing profiles
+            HevcEncoder.Register();
+
             InitProfile();
         }
 
         private void InitProfile()
         {
-            MediaExtensionManager manager = new MediaExtensionManager();
             //// HD profile (1080p)
             //_profileHD = MediaEncodingProfile.CreateMp4(VideoEncodingQuality.HD1080p);
             //_profileHD.Video.Width = 1920;

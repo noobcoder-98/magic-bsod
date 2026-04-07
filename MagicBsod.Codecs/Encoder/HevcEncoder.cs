@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MagicBsod.Codecs.Encoder
+﻿namespace MagicBsod.Codecs.Encoder
 {
     public sealed class HevcEncoder
     {
+
+        public HevcEncoder()
+        {
+
+        }
         public static void Register()
         {
-            MagicBsod.Codecs.RT.HevcEncoder.Register();
+            MagicBsod_Codecs_RT.HevcEncoder.Register();
         }
     }
 }
