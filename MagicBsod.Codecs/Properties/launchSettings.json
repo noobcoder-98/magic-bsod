@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MagicBsod.Codecs": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

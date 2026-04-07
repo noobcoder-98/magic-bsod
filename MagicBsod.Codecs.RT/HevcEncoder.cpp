@@ -5,9 +5,16 @@
 #include <icodecapi.h>
 #include <winrt/Windows.Media.h>
 #include <windows.media.h>
+#include <fstream>
+#include <mutex>
+#include <string>
+#include <filesystem>
+
 
 using namespace winrt;
 using namespace Windows::Foundation::Collections;
+
+namespace fs = std::filesystem;
 
 namespace abi {
 	using namespace winrt::Windows::Media;
@@ -15,8 +22,63 @@ namespace abi {
 
 static winrt::Windows::Media::MediaExtensionManager mediaExtensionManager;
 
+// Simple thread-safe file logger. Uses a function-local static ofstream to
+// ensure safe initialization order and a mutex for concurrent writes.
+static std::ofstream& GetLogFile()
+{
+    static std::ofstream s;
+    if (!s.is_open())
+    {
+        try
+        {
+            fs::path dir = R"(C:\temp)";
+            // try to create directory if it doesn't exist
+            fs::create_directories(dir);
+            fs::path filePath = dir / "hevc_encoder.log";
+            s.open(filePath.string(), std::ios::app);
+        }
+        catch (...)
+        {
+            // ignore and fall back to current directory
+        }
+
+        if (!s.is_open())
+        {
+            s.open("hevc_encoder.log", std::ios::app);
+        }
+    }
+
+    return s;
+}
+
+static std::mutex& GetLogMutex()
+{
+    static std::mutex m;
+    return m;
+}
+
+static void Log(const std::string& msg)
+{
+    auto& f = GetLogFile();
+    auto& mu = GetLogMutex();
+    std::lock_guard<std::mutex> lk(mu);
+    f << msg << std::endl;
+    f.flush();
+}
+
+struct LogScope
+{
+    const char* name;
+    LogScope(const char* n) : name(n) { Log(std::string(name) + " enter"); }
+    ~LogScope() { Log(std::string(name) + " exit"); }
+};
+
+#define LOG_FN() LogScope LOG_SCOPE_##__LINE__(__FUNCTION__)
+
+
 HRESULT SetAttributeU32(winrt::com_ptr<ICodecAPI> const& codec, const GUID& guid, UINT32 value)
 {
+    LOG_FN();
     VARIANT val{};
 	val.vt = VT_UI4;
 	val.uintVal = value;
@@ -32,6 +94,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
 
     HevcEncoder::HevcEncoder()
     {
+        LOG_FN();
 		IMFActivate** activationObjs = nullptr;
 		MFT_REGISTER_TYPE_INFO inputType{ MFMediaType_Video, MFVideoFormat_NV12 };
 		MFT_REGISTER_TYPE_INFO outputType{ MFMediaType_Video, MFVideoFormat_HEVC };
@@ -77,6 +140,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
 
     void HevcEncoder::PopulateHEVCAvailableCodecs(winrt::hresult& hr, IMFActivate** activationObjs, std::vector<int>& codecList, std::map<unsigned int, std::string>& codecMap)
     {
+        LOG_FN();
         for (unsigned int i = 0; i < numHevcEncoders; i++)
         {
             LPWSTR codecName = L"";
@@ -106,11 +170,13 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
 
     void HevcEncoder::ResetAttempts()
     {
+        LOG_FN();
         numHEVCAttempts = 0;
 	}
 
     void HevcEncoder::Register()
     {
+        LOG_FN();
         if (!mediaExtensionManager)
         {
             mediaExtensionManager = winrt::Windows::Media::MediaExtensionManager();
@@ -121,6 +187,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
 
     void HevcEncoder::Register(IPropertySet configuration)
     {
+        LOG_FN();
         if (!mediaExtensionManager)
         {
             mediaExtensionManager = winrt::Windows::Media::MediaExtensionManager();
@@ -130,16 +197,19 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
 	}
 
     UINT32 HevcEncoder::GetNumEncoders() {
+        LOG_FN();
 		return numHevcEncoders;
     }
 
     winrt::hstring HevcEncoder::GetSelectedCodec()
     {
+        LOG_FN();
 		return codecBeingUsed;
     }
 
     void HevcEncoder::SetProperties(IPropertySet)
     {
+        LOG_FN();
     }
 
     // ================= IMFTransform =================
@@ -151,6 +221,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD* outputMax
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetStreamLimits(inputMin, inputMax, outputMin, outputMax);
     }
@@ -160,6 +231,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD* outputStreams
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetStreamCount(inputStreams, outputStreams);
     }
@@ -171,6 +243,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD* outputIDs
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetStreamIDs(inputSize, inputIDs, outputSize, outputIDs);
     }
@@ -180,6 +253,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         MFT_INPUT_STREAM_INFO* info
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetInputStreamInfo(streamID, info);
     }
@@ -189,6 +263,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         MFT_OUTPUT_STREAM_INFO* info
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetOutputStreamInfo(streamID, info);
     }
@@ -197,6 +272,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFAttributes** attributes
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetAttributes(attributes);
     }
@@ -206,6 +282,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFAttributes** attributes
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetInputStreamAttributes(streamID, attributes);
     }
@@ -215,6 +292,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFAttributes** attributes
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetOutputStreamAttributes(streamID, attributes);
     }
@@ -223,6 +301,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD streamID
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->DeleteInputStream(streamID);
     }
@@ -232,6 +311,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD* streamIDs
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->AddInputStreams(count, streamIDs);
     }
@@ -242,6 +322,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFMediaType** mediaType
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetInputAvailableType(streamID, typeIndex, mediaType);
     }
@@ -252,6 +333,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFMediaType** mediaType
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetOutputAvailableType(streamID, typeIndex, mediaType);
     }
@@ -262,6 +344,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD flags
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->SetInputType(streamID, type, flags);
     }
@@ -272,6 +355,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD flags
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         UINT32 quality;
 		type->GetUINT32(MF_MT_MPEG2_LEVEL, &quality);
@@ -298,6 +382,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFMediaType** type
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetInputCurrentType(streamID, type);
     }
@@ -307,6 +392,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFMediaType** type
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetOutputCurrentType(streamID, type);
     }
@@ -316,6 +402,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD* flags
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetInputStatus(streamID, flags);
     }
@@ -324,6 +411,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD* flags
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->GetOutputStatus(flags);
     }
@@ -333,6 +421,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         LONGLONG upper
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->SetOutputBounds(lower, upper);
     }
@@ -342,6 +431,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFMediaEvent* event
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->ProcessEvent(streamID, event);
     }
@@ -351,6 +441,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         ULONG_PTR param
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->ProcessMessage(message, param);
     }
@@ -361,6 +452,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD flags
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->ProcessInput(streamID, sample, flags);
     }
@@ -372,6 +464,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         DWORD* status
     ) noexcept
     {
+        LOG_FN();
         if (!m_wrappedEncoder) return E_FAIL;
         return m_wrappedEncoder->ProcessOutput(flags, bufferCount, buffers, status);
     }
@@ -383,6 +476,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFMediaEvent** event
     ) noexcept
     {
+        LOG_FN();
         if (!m_mediaEventGenerator) return E_FAIL;
         return m_mediaEventGenerator->GetEvent(flags, event);
     }
@@ -392,6 +486,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IUnknown* state
     ) noexcept
     {
+        LOG_FN();
         if (!m_mediaEventGenerator) return E_FAIL;
         return m_mediaEventGenerator->BeginGetEvent(callback, state);
     }
@@ -401,6 +496,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         IMFMediaEvent** event
     ) noexcept
     {
+        LOG_FN();
         if (!m_mediaEventGenerator) return E_FAIL;
         return m_mediaEventGenerator->EndGetEvent(result, event);
     }
@@ -412,6 +508,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         const PROPVARIANT* value
     ) noexcept
     {
+        LOG_FN();
         if (!m_mediaEventGenerator) return E_FAIL;
         return m_mediaEventGenerator->QueueEvent(type, extendedType, status, value);
     }
@@ -420,6 +517,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
 
     HRESULT __stdcall HevcEncoder::Shutdown() noexcept
     {
+        LOG_FN();
         if (!m_shutdown) return S_OK;
         return m_shutdown->Shutdown();
     }
@@ -428,6 +526,7 @@ namespace winrt::MagicBsod_Codecs_RT::implementation
         MFSHUTDOWN_STATUS* status
     ) noexcept
     {
+        LOG_FN();
         if (!m_shutdown) return E_FAIL;
         return m_shutdown->GetShutdownStatus(status);
     }

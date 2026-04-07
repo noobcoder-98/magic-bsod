@@ -1,7 +1,8 @@
 {
   "profiles": {
     "MagicBsod.UI (Package)": {
-      "commandName": "MsixPackage"
+      "commandName": "MsixPackage",
+      "nativeDebugging": true
     },
     "MagicBsod.UI (Unpackaged)": {
       "commandName": "Project",
