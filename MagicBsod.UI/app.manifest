@@ -17,7 +17,7 @@
     </windowsSettings>
   </application>
     <file name="MagicBsod.Effects.RT.dll">
-		<winrt:activatableClass name="MagicBsod_Effects_RT.CanvasStudioVideoCompositorEffect" threadingModel="both" xmlns:winrt="urn:schemas-microsoft-com:winrt:v1" />
+		<winrt:activatableClass name="MagicBsod_Effects_RT.StudioVideoCompositorEffectTemplate" threadingModel="both" xmlns:winrt="urn:schemas-microsoft-com:winrt:v1" />
     </file>
 
 </assembly>

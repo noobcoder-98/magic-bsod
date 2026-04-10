@@ -15,6 +15,7 @@
     
   <ItemGroup>
     <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
+	  <PackageReference Include="Microsoft.VCRTForwarders.140" Version="1.1.0" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1721" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
@@ -22,5 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MagicBsod.Effects.RT\MagicBsod.Effects.RT.vcxproj" />
   </ItemGroup>
-  
+	<PropertyGroup>
+		<VCRTForwarders-IncludeDebugCRT Condition="'$(VCRTForwarders-IncludeDebugCRT)$(Configuration)' == 'Release'">false</VCRTForwarders-IncludeDebugCRT>
+	</PropertyGroup>
 </Project>

@@ -25,7 +25,8 @@ public class CanvasEffect : IStudioVideoCompositorEffect
 
     public static VideoCompositorDefinition CreateCompositorEffect(IPropertySet configuration)
     {
-        return new VideoCompositorDefinition(typeof(StudioVideoCompositorEffectTemplate).FullName, configuration);
+        string classId = typeof(StudioVideoCompositorEffectTemplate).FullName;
+        return new VideoCompositorDefinition(classId, configuration);
     }
 
     public bool TimeIndependent => throw new NotImplementedException();

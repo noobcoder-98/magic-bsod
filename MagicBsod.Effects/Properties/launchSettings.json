@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MagicBsod.Effects": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

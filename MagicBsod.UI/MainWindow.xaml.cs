@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -50,21 +51,12 @@ namespace MagicBsod.UI
 
         private void InitProfile()
         {
-            //// HD profile (1080p)
-            //_profileHD = MediaEncodingProfile.CreateMp4(VideoEncodingQuality.HD1080p);
-            //_profileHD.Video.Width = 1920;
-            //_profileHD.Video.Height = 1080;
-            //_profileHD.Video.FrameRate.Numerator = 30;
-            //_profileHD.Video.FrameRate.Denominator = 1;
-            //_profileHD.Video.Bitrate = 75;
-
-            // 4k profile
             _profile4K = MediaEncodingProfile.CreateHevc(VideoEncodingQuality.Uhd2160p);
             _profile4K.Video.Width = 3840;
             _profile4K.Video.Height = 3840;
             _profile4K.Video.FrameRate.Numerator = 60;
             _profile4K.Video.FrameRate.Denominator = 1;
-            _profile4K.Video.Bitrate = 20_000_000; 
+            _profile4K.Video.Bitrate = 3_000_000;
             var key = new Guid("96f66574-11c5-4015-8666-bff516436da7");
             _profile4K.Video.Properties[key] = 186;
         }
@@ -74,25 +66,25 @@ namespace MagicBsod.UI
             for (int i = 0; i < 100; i++)
             {
                 await ExportVideo(i);
+                await Task.Delay(1000);
             }
         }
 
         private async Task ExportVideo(int countVideo)
         {
-            string outputFolderPath = @"C:\Users\supernoobcoder\Downloads\Magic";
-            StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(outputFolderPath);
-            StorageFile outputFile = await folder.CreateFileAsync($"MagicExportVideo_{countVideo}.mp4", CreationCollisionOption.ReplaceExisting);
-
-            var composition = await GenerateCompositionAsync();
-            var transcoder = new MediaTranscoder();
-            using IRandomAccessStream outStream = await outputFile.OpenAsync(FileAccessMode.ReadWrite);
-            var prepare = await transcoder.PrepareMediaStreamSourceTranscodeAsync(
-                composition.GenerateMediaStreamSource(_profile4K),
-                outStream,
-                _profile4K);
-
             try
             {
+                string outputFolderPath = @"C:\Users\supernoobcoder\Downloads\Magic";
+                StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(outputFolderPath);
+                StorageFile outputFile = await folder.CreateFileAsync($"MagicExportVideo_{countVideo}.mp4", CreationCollisionOption.ReplaceExisting);
+                var composition = await GenerateCompositionAsync();
+                var transcoder = new MediaTranscoder();
+                using IRandomAccessStream outStream = await outputFile.OpenAsync(FileAccessMode.ReadWrite);
+                var prepare = await transcoder.PrepareMediaStreamSourceTranscodeAsync(
+                    composition.GenerateMediaStreamSource(_profile4K),
+                    outStream,
+                    _profile4K);
+
                 if (prepare.CanTranscode)
                 {
                     await prepare.TranscodeAsync();
@@ -101,7 +93,7 @@ namespace MagicBsod.UI
             }
             catch (Exception ex)
             {
-                ExportMagic.Content = $"Exception: {ex.Message}";
+                Log.Error(ex, "Error exporting video {CountVideo}", countVideo);
             }
         }
 
@@ -113,7 +105,6 @@ namespace MagicBsod.UI
             };
 
             VideoCompositorDefinition compositor = CanvasEffect.CreateCompositorEffect(compositorConfigs);
-
             MediaComposition composition = new MediaComposition();
 
             MediaClip clip = await GetMediaClipAsync();
